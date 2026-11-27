@@ -95,16 +95,7 @@ export class AntigravityAccountService {
       if (!selected) {
         throw new Error('Antigravity account was not found.')
       }
-      const switching = !current || !this.matches(selected, current)
-      if (switching) {
-        await this.backend.write(selected.credentials, current?.contents ?? null)
-      }
-      const readback = await this.backend.read()
-      if (!readback || !this.matches(selected, readback)) {
-        throw new Error(
-          'Antigravity account switching could not be verified; refresh before retrying.'
-        )
-      }
+      const { readback, switching } = await this.switchNative(selected, current)
       const latest = await this.store.read()
       if (
         !latest.accounts.some((account) => account.id === id && this.matches(account, readback))
@@ -144,16 +135,42 @@ export class AntigravityAccountService {
   prepareForLaunch(): Promise<void> {
     return this.serialize(async () => {
       const { vault, current } = await this.reconcile()
-      if (!vault.selectedAccountId) {
+      const selected = vault.accounts.find((account) => account.id === vault.selectedAccountId)
+      if (!vault.selectedAccountId || (selected && current && this.matches(selected, current))) {
         return
       }
-      const selected = vault.accounts.find((account) => account.id === vault.selectedAccountId)
-      if (!selected || !current || !this.matches(selected, current)) {
+      // Each running agy writes its own login back to the one native slot on every token refresh.
+      // Exactly one saved account holding it (reconcile just saved it) restores the selection, as
+      // best effort as selecting: the native store has no compare-and-swap.
+      const holders = current ? vault.accounts.filter((entry) => this.matches(entry, current)) : []
+      if (!selected || holders.length !== 1) {
         throw new Error(
           'The native Antigravity account changed. Select the account again in Accounts before launching agy.'
         )
       }
+      await this.switchNative(selected, current)
+      // No vault write: both logins are already saved, and another Orca process selecting meanwhile wins.
+      if ((await this.store.read()).selectedAccountId !== selected.id) {
+        throw new Error('Antigravity snapshots changed during selection; refresh before retrying.')
+      }
     })
+  }
+
+  private async switchNative(
+    selected: StoredAntigravityAccount,
+    current: AntigravityNativeCredential | null
+  ) {
+    const switching = !current || !this.matches(selected, current)
+    if (switching) {
+      await this.backend.write(selected.credentials, current?.contents ?? null)
+    }
+    const readback = await this.backend.read()
+    if (!readback || !this.matches(selected, readback)) {
+      throw new Error(
+        'Antigravity account switching could not be verified; refresh before retrying.'
+      )
+    }
+    return { readback, switching }
   }
 
   private matches(
