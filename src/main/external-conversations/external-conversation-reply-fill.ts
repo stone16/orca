@@ -15,6 +15,8 @@ import { capAnswer } from '../connector-cloud/connector-snapshot'
 import type { AgentSessionJournalReads } from '../native-chat/agent-session-journal/journal-reads'
 import { isQuietBotResult } from '../../shared/bot-quiet-result'
 import { isSlackDirectMessage } from '../../shared/connectors/slack-direct-message'
+import { isLocalConnectorSource } from '../../shared/connectors/external-conversation-link'
+import { findLink, type ExternalConversationLinkStore } from './external-conversation-links'
 import type { EmptyTurnRetry } from './external-conversation-reply-empty-retry'
 import type { AgentJournalMessageItem } from '../../shared/agent-session/journal/agent-session-journal-types'
 import { agentJournalSubmissionKey } from '../../shared/agent-session/journal/agent-session-journal-item-key'
@@ -85,6 +87,17 @@ export type UsageLimitPause = (
 
 const keyOf = (account: string, deliveryId: string): string => `${account}\0${deliveryId}`
 
+function isLocalOwnerDm(
+  store: ExternalConversationLinkStore | undefined,
+  { source, externalId }: JournalConnectorReplyRow['conversation']
+): boolean {
+  if (!store || !isLocalConnectorSource(source)) {
+    return false
+  }
+  const opener = findLink(store, { source, externalId })?.link.opener
+  return opener?.role === 'owner' && opener.dm === true
+}
+
 /**
  * Takes the session's rows the turn's stamps name and fills the unfilled ones. Returns the
  * conversations (external ids) those rows cover: their answer goes through the outbox, never the
@@ -95,7 +108,8 @@ export function conversationReplyFill(
   filled: () => void,
   pause?: UsageLimitPause,
   askedByOwner?: AskedByOwner,
-  retry?: Pick<EmptyTurnRetry, 'hold' | 'posted'>
+  retry?: Pick<EmptyTurnRetry, 'hold' | 'posted'>,
+  links?: ExternalConversationLinkStore
 ): ConversationReplyFill {
   return async (turn) => {
     const store = journal()
@@ -175,7 +189,7 @@ export function conversationReplyFill(
       }
       const ownerDm =
         row.quietRule === undefined &&
-        isSlackDirectMessage(row.conversation) &&
+        (isSlackDirectMessage(row.conversation) || isLocalOwnerDm(links, row.conversation)) &&
         (ownerAsked.has(keyOf(row.account, row.deliveryId)) ||
           (await askedByOwner?.(turn.sessionId, row.messageId).catch(() => false)) === true)
       silencedWhole.set(conversation, row.quietRule === undefined && !ownerDm)
