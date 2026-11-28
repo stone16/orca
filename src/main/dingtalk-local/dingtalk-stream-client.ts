@@ -5,7 +5,8 @@ import { DINGTALK_BOT_TOPIC, dingTalkAck, parseDingTalkFrame } from './dingtalk-
 import { openDingTalkStream } from './dingtalk-openapi'
 
 const MAX_CALLBACKS_IN_FLIGHT = 32
-const HEARTBEAT_MS = 20_000
+const PROBE_AFTER_IDLE_MS = 20_000
+const PONG_TIMEOUT_MS = 10_000
 const CONNECT_TIMEOUT_MS = 15_000
 
 type StreamHooks = {
@@ -56,10 +57,20 @@ export function connectDingTalkSocket(
       handshakeTimeout: CONNECT_TIMEOUT_MS,
       maxPayload: 128 * 1024
     })
-    let heartbeat: ReturnType<typeof setInterval> | undefined
-    let isAlive = true
+    let idleProbe: ReturnType<typeof setTimeout> | undefined
+    let pongDeadline: ReturnType<typeof setTimeout> | undefined
     let admitting = 0
     const terminate = () => socket.terminate()
+    const noteTraffic = () => {
+      clearTimeout(idleProbe)
+      clearTimeout(pongDeadline)
+      if (!signal.aborted && socket.readyState === WebSocket.OPEN) {
+        idleProbe = setTimeout(() => {
+          socket.ping()
+          pongDeadline = setTimeout(terminate, PONG_TIMEOUT_MS).unref()
+        }, PROBE_AFTER_IDLE_MS).unref()
+      }
+    }
     const send = (ack: string) => {
       if (!signal.aborted && socket.readyState === WebSocket.OPEN) {
         socket.send(ack, (error) => {
@@ -72,27 +83,20 @@ export function connectDingTalkSocket(
     signal.addEventListener('abort', terminate, { once: true })
     socket.on('error', terminate)
     socket.once('close', () => {
-      clearInterval(heartbeat)
+      clearTimeout(idleProbe)
+      clearTimeout(pongDeadline)
       signal.removeEventListener('abort', terminate)
       resolve()
     })
     socket.once('open', () => {
       opened()
       hooks.connected(true)
-      heartbeat = setInterval(() => {
-        if (!isAlive) {
-          terminate()
-          return
-        }
-        isAlive = false
-        socket.ping()
-      }, HEARTBEAT_MS)
-      heartbeat.unref()
+      noteTraffic()
     })
-    socket.on('pong', () => {
-      isAlive = true
-    })
+    socket.on('pong', noteTraffic)
+    socket.on('ping', noteTraffic)
     socket.on('message', (bytes, binary) => {
+      noteTraffic()
       if (binary || signal.aborted) {
         return
       }

@@ -68,16 +68,12 @@ export function BotDingTalkSettings({
     return () => clearTimeout(expires)
   }, [pair])
 
-  const request = async (run: () => Promise<void>): Promise<void> => {
+  const request = (run: () => Promise<void>): Promise<void> => {
     setBusy(true)
     setFailed(false)
-    try {
-      await run()
-    } catch {
-      setFailed(true)
-    } finally {
-      setBusy(false)
-    }
+    return run()
+      .catch(() => setFailed(true))
+      .finally(() => setBusy(false))
   }
 
   const configure = (event: FormEvent<HTMLFormElement>) => {

@@ -16,13 +16,19 @@ export function useDingTalkStatus(bot: BotRef | null): BotDingTalkStatus | null 
     if (!id || !key || !supported) {
       return
     }
-    let sequence = 0
-    let active = true
+    const scope: { current?: AbortController } = {}
     const refresh = () => {
-      const update = ++sequence
-      void callBotRpc<BotDingTalkStatus>({ hostId }, 'bots.dingtalk.status', { botId: id })
+      scope.current?.abort()
+      const request = new AbortController()
+      scope.current = request
+      void callBotRpc<BotDingTalkStatus>(
+        { hostId },
+        'bots.dingtalk.status',
+        { botId: id },
+        { signal: request.signal }
+      )
         .then((state) => {
-          if (active && update === sequence) {
+          if (!request.signal.aborted) {
             setSeen({ key, state })
           }
         })
@@ -31,7 +37,7 @@ export function useDingTalkStatus(bot: BotRef | null): BotDingTalkStatus | null 
     refresh()
     window.addEventListener(BOTS_CHANGED_EVENT, refresh)
     return () => {
-      active = false
+      scope.current?.abort()
       window.removeEventListener(BOTS_CHANGED_EVENT, refresh)
     }
   }, [hostId, id, key, supported])
