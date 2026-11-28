@@ -4,7 +4,6 @@ import type {
 } from '../../shared/connectors/connector-cloud-contract'
 import type { AdmittedMessage } from '../native-chat/agent-session-wire/host/structured-agent-session-host-types'
 import { nameLinkedPlace } from './external-conversation-place'
-import { isBotAgent } from '../../shared/bot-types'
 import {
   type ConversationChatHost,
   chatTurnFacts,
@@ -12,7 +11,7 @@ import {
 } from './external-conversation-chat'
 import { answerConversation } from './external-conversation-answer'
 import { chatPromptFacts } from './external-conversation-chat-prompts'
-import { botChatFor } from './external-conversation-bots'
+import { botChatFor, startBotChat } from './external-conversation-bots'
 import {
   ChatDeliveries,
   linkedChat,
@@ -205,10 +204,7 @@ export class ExternalConversationSeam {
       [agent, target, prompt],
       () =>
         this.chain.enqueue(conversationId(key), async (signal) => {
-          if (!isBotAgent(agent)) {
-            return refused('unsupported_agent')
-          }
-          const chat = await botChatFor(this.deps.store, host.bots, key, target)
+          const chat = await startBotChat(this.deps.store, host.bots, key, input)
           return 'outcome' in chat
             ? chat
             : this.deliverToChat(host, key, chat, { ...message, text: prompt, deliveryId }, signal)
@@ -308,10 +304,14 @@ export class ExternalConversationSeam {
   ): Promise<Delivery> {
     this.linked.set(conversationId(key), { key, worktreeId: chat.worktreeId })
     // A bot's request (and any carried follow-ups) may list images; they go with its words.
-    const images = await fetchAskerImages(this.deps.askerImages, chat, key, message, signal)
+    const { storedImages, transportSignal, ...words } = message
+    const deliverySignal = transportSignal ? AbortSignal.any([signal, transportSignal]) : signal
+    const images =
+      storedImages ??
+      (await fetchAskerImages(this.deps.askerImages, chat, key, words, deliverySignal))
     const delivered = await this.chatDeliveries.deliver(host.chat, key, chat, {
-      ...message,
-      signal,
+      ...words,
+      signal: deliverySignal,
       ...(images.length > 0 ? { images } : {})
     })
     // Its outbox row may have committed even when the send was then rejected: watch from now on.
