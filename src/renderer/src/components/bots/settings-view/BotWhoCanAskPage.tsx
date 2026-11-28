@@ -12,6 +12,8 @@ import { useSlackWhoCanAsk } from '../slack/use-slack-who-can-ask'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../../shared/execution-host/execution-host'
 import { BotPairedServersWhoCanAsk } from './BotPairedServersWhoCanAsk'
 import { pairedServerAsksOn } from '../paired-server-asks-on'
+import { DingTalkIcon } from '../../icons/DingTalkIcon'
+import { useTranslate } from '@/i18n/use-translate'
 
 type PeopleEntry = Extract<BotConnectorEntry, { kind: 'slack' | 'linear' | 'github' }>
 
@@ -75,7 +77,12 @@ function GitHubPeople({
 }
 
 export function BotWhoCanAskPage({ bot }: { bot: Bot }): React.JSX.Element {
-  const entries = useBotConnectorEntries(bot).filter(
+  const t = useTranslate()
+  const inventory = useBotConnectorEntries(bot)
+  const dingTalk = inventory.find(
+    (entry) => entry.kind === 'dingtalk' && entry.status.link === 'paired'
+  )
+  const entries = inventory.filter(
     (entry): entry is PeopleEntry =>
       entry.kind === 'slack' || entry.kind === 'linear' || entry.kind === 'github'
   )
@@ -84,7 +91,7 @@ export function BotWhoCanAskPage({ bot }: { bot: Bot }): React.JSX.Element {
     bot.hostId === LOCAL_EXECUTION_HOST_ID && pairedServerAsksOn() ? (
       <BotPairedServersWhoCanAsk bot={bot} />
     ) : null
-  if (entries.length === 0) {
+  if (entries.length === 0 && !dingTalk) {
     return (
       <>
         <BotNoConnectors bot={bot} />
@@ -111,6 +118,20 @@ export function BotWhoCanAskPage({ bot }: { bot: Bot }): React.JSX.Element {
             )
         }
       })}
+      {dingTalk ? (
+        <section className="flex min-w-0 flex-col gap-2">
+          <h3 className="flex items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
+            <DingTalkIcon className="size-3.5 shrink-0" />
+            {botConnectorTitleText(dingTalk.title)}
+          </h3>
+          <p className="rounded-[10px] bg-foreground/[0.035] p-3 text-sm">
+            {t(
+              'bots.dingtalk.ownerOnly',
+              'Only the paired DingTalk account can ask this bot in a direct chat.'
+            )}
+          </p>
+        </section>
+      ) : null}
       {pairedServers}
     </>
   )

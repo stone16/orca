@@ -31,6 +31,7 @@ import { GitHubIcon } from '../../icons/GitHubIcon'
 import { GoogleIcon } from '../../icons/GoogleIcon'
 import { SlackIcon } from '../../icons/SlackIcon'
 import { LinearIcon } from '../../icons/LinearIcon'
+import { DingTalkIcon } from '../../icons/DingTalkIcon'
 import { BARE_LOGO_BOX, BotAppLogo, BotLogoBare } from './BotAppRow'
 import { cn } from '@/lib/class-names'
 import { LOGO_TILES } from './brand-logo-tiles'
@@ -52,6 +53,7 @@ const BRANDS: Readonly<Record<string, BotAppBrand>> = {
   google: { logo: googleLogo, Icon: GoogleIcon },
   linear: { Icon: LinearIcon },
   github: { Icon: GitHubIcon },
+  dingtalk: { Icon: DingTalkIcon },
   vercel: { logo: vercelLogo, whiteMark: true },
   sentry: { logo: sentryLogo, whiteMark: true },
   datadog: { logo: datadogLogo, darkLogo: datadogDarkLogo },

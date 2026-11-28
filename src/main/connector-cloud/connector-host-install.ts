@@ -15,6 +15,7 @@ import type { Store } from '../persistence/loading-store/store'
 import { splitBotsByOlderBuildSupport, withGitHubMembersTagged } from '../../shared/bot-types'
 import { ORCA_CLOUD_TEAM_POLICY_FLAGS } from '../../shared/orca-profiles/orca-cloud-team-policy'
 import { onTeamFeatureBlockChanged } from '../orca-profiles/cloud-auth/active-team-capabilities'
+import { DingTalkLocalHost } from '../dingtalk-local/dingtalk-local-host'
 
 const LINEAR_LOGIN_REFRESH_DELAY_MS = 30_000
 
@@ -48,6 +49,9 @@ export function installConnectorHost({
   kind,
   isFenced
 }: ConnectorHostOptions): ConnectorHost {
+  const dingTalk = new DingTalkLocalHost(runtime, userDataPath, isFenced)
+  runtime.localConnectors.add(dingTalk)
+  runtime.onBotsWritten(() => dingTalk.botsChanged())
   const gitHubInstallations = new ConnectorGitHubInstallations({
     account: () => connectorAccount(userDataPath),
     fetchState: () =>

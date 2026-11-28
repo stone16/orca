@@ -183,6 +183,7 @@ import {
   ConnectorConnectStart,
   ConnectorConnectWait
 } from './bots-connector-setup-params'
+import { BotDingTalkConfigure, BotDingTalkTarget } from './bots-dingtalk-local-params'
 import { BotImportDoneCard, BotImportPlanCard, BotImportSources } from './bots-import-params'
 import {
   BotItemsAdd,
@@ -1346,6 +1347,10 @@ export const RPC_PARAMS_BY_METHOD = {
   'bots.create': BotCreate,
   'bots.createOffer': BotCreateOfferRequest,
   'bots.delete': BotDelete,
+  'bots.dingtalk.configure': BotDingTalkConfigure,
+  'bots.dingtalk.disconnect': BotDingTalkTarget,
+  'bots.dingtalk.pair': BotDingTalkTarget,
+  'bots.dingtalk.status': BotDingTalkTarget,
   'bots.github.setDefaultBot': BotGitHubDefaultBot,
   'bots.github.state': null,
   'bots.github.unlink': BotGitHubUnlink,

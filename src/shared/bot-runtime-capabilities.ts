@@ -11,6 +11,7 @@ export const BOTS_TOOLS_OWNED_SIGN_IN_RUNTIME_CAPABILITY = 'bots.tools.owned-sig
 
 // Host sets up its bots' Slack, Linear and GitHub for any paired client (bots.slack/linear/github/connect.*); an older host only from its own window.
 export const BOTS_CONNECTORS_RUNTIME_CAPABILITY = 'bots.connectors.v1' as const
+export const BOTS_DINGTALK_RUNTIME_CAPABILITY = 'bots.dingtalk.v1' as const
 
 // Host creates bots from built-in template packages (bots.create fromTemplate); an older host knows only the
 // five seed-only templates, and its enum rejects any other templateId.
@@ -110,6 +111,7 @@ export const BOT_RUNTIME_CAPABILITIES = [
   BOTS_CREATE_RUNTIME_CAPABILITY,
   BOTS_TOOLS_OWNED_SIGN_IN_RUNTIME_CAPABILITY,
   BOTS_CONNECTORS_RUNTIME_CAPABILITY,
+  BOTS_DINGTALK_RUNTIME_CAPABILITY,
   BOTS_TEMPLATES_RUNTIME_CAPABILITY,
   BOTS_CHAT_MENTIONS_RUNTIME_CAPABILITY,
   BOTS_ITEMS_RUNTIME_CAPABILITY,

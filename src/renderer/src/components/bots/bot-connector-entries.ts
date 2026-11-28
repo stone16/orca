@@ -9,8 +9,11 @@ import { useBotSlack } from '@/lib/bot-slack-state'
 import type { Bot } from '../../../../shared/bot-types'
 import {
   botConnectorEntries as sharedBotConnectorEntries,
-  type BotConnectorEntry
+  type BotConnectorEntry as SharedBotConnectorEntry
 } from '../../../../shared/bots/bot-connector-entries'
+import type { BotConnectorTitle } from '../../../../shared/bots/bot-connector-titles'
+import type { BotDingTalkStatus } from '../../../../shared/bots/dingtalk-local'
+import { useDingTalkStatus } from './dingtalk/use-dingtalk-status'
 import type { BotGitHubView } from '@/lib/bot-github-state'
 import type { BotLinearView } from '@/lib/bot-linear-state'
 import type { BotSlackView } from '@/lib/bot-slack-state'
@@ -25,10 +28,16 @@ import { slackCardFace } from './slack/bot-slack-card-face'
 import { botConnectorTitleSeparator } from './bot-connector-titles'
 import { translate } from '@/i18n/i18n'
 
-export type {
-  BotConnectorEntry,
-  ComposioProblem
-} from '../../../../shared/bots/bot-connector-entries'
+export type { ComposioProblem } from '../../../../shared/bots/bot-connector-entries'
+export type BotConnectorEntry =
+  | SharedBotConnectorEntry
+  | {
+      kind: 'dingtalk'
+      key: string
+      needsOwner: boolean
+      title: BotConnectorTitle
+      status: BotDingTalkStatus
+    }
 
 /** What the list is built from: the stores each connector's row reads. */
 export type BotConnectorSources = {
@@ -72,6 +81,7 @@ export function useBotConnectorInventory(
   const google = useGoogleHost(bot ? botTarget(bot) : ownBotHost().target, bot?.google === true)
   const composio = useComposioBot(bot)
   const { view: tools } = useBotTools(bot, appsCheck)
+  const dingTalk = useDingTalkStatus(bot)
   // Changes with the UI language, so the translated titles follow a switch.
   const t = useTranslate()
   // The panel header, tab and toggle all read it, so one list per change of its sources.
@@ -92,11 +102,22 @@ export function useBotConnectorInventory(
     if (tools.status !== 'ready') {
       unresolved.push('app')
     }
-    return {
-      entries: botConnectorEntries(bot, { slack, linear, github, google, composio, tools }, t),
-      unresolved
+    const entries = botConnectorEntries(bot, { slack, linear, github, google, composio, tools }, t)
+    if (
+      dingTalk?.link === 'paired' ||
+      dingTalk?.link === 'unpaired' ||
+      dingTalk?.link === 'unavailable'
+    ) {
+      entries.push({
+        kind: 'dingtalk',
+        key: 'dingtalk',
+        title: { service: t('bots.dingtalk.title', 'DingTalk'), name: null },
+        status: dingTalk,
+        needsOwner: dingTalk.link !== 'paired' || dingTalk.replyNeedsReview
+      })
     }
-  }, [bot, slack, linear, github, google, composio, tools, t])
+    return { entries, unresolved }
+  }, [bot, slack, linear, github, google, composio, tools, dingTalk, t])
 }
 
 /** The list itself, from the bot and its sources. */

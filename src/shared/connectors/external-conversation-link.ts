@@ -1,11 +1,11 @@
 import type { NativeChatAgent } from '../agent-launch/permissions/agent-chat-permission-support'
 
 /** Where a connector conversation comes from. */
-export const CONNECTOR_SOURCES = ['slack', 'github', 'linear', 'discord'] as const
+export const CONNECTOR_SOURCES = ['slack', 'github', 'linear', 'discord', 'dingtalk'] as const
 export type ConnectorSource = (typeof CONNECTOR_SOURCES)[number]
 
 /** Sources delivered and answered on the bot's host. */
-export const LOCAL_CONNECTOR_SOURCES = [] as const satisfies readonly ConnectorSource[]
+export const LOCAL_CONNECTOR_SOURCES = ['dingtalk'] as const satisfies readonly ConnectorSource[]
 export type LocalConnectorSource = (typeof LOCAL_CONNECTOR_SOURCES)[number]
 export const isLocalConnectorSource = (source: string): source is LocalConnectorSource =>
   LOCAL_CONNECTOR_SOURCES.some((local) => local === source)
@@ -15,7 +15,8 @@ export const CONNECTOR_SOURCE_NAMES: Record<ConnectorSource, string> = {
   slack: 'Slack',
   github: 'GitHub',
   linear: 'Linear',
-  discord: 'Discord'
+  discord: 'Discord',
+  dingtalk: 'DingTalk'
 }
 
 /** Where a conversation's replies land, as a bot reads it: "the Slack thread in #orca", "ENG-42 on Linear". */

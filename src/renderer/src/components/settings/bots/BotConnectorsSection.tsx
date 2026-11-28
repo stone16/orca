@@ -19,6 +19,9 @@ import { BotGoogleCard } from '@/components/bots/google/BotGoogleCard'
 import { BotLinearCard } from '@/components/bots/linear/BotLinearCard'
 import { BotSlackCard } from '@/components/bots/slack/BotSlackCard'
 import { BotWebhooksCard } from '@/components/bots/webhooks/BotWebhooksCard'
+import { BotConnectorRowFrame } from '@/components/bots/BotConnectorRow'
+import { BotDingTalkSettings } from '@/components/bots/dingtalk/BotDingTalkSetup'
+import { connectorDescription } from '@/components/bots/bot-connector-descriptions'
 import { BotCloudSignInNotice } from '@/components/bots/BotCloudSignInNotice'
 import { BotConnectorsHostNotice } from '@/components/bots/BotConnectorsHostNotice'
 import {
@@ -54,6 +57,7 @@ function BotConnectorEntryCard({
   bot: Bot
   entry: BotConnectorEntry
 }): React.JSX.Element | null {
+  const t = useTranslate()
   const { title } = entry
   switch (entry.kind) {
     case 'slack':
@@ -66,6 +70,26 @@ function BotConnectorEntryCard({
       return <BotGoogleCard bot={bot} title={title} />
     case 'webhooks':
       return <BotWebhooksCard bot={bot} title={title} />
+    case 'dingtalk':
+      return (
+        <BotConnectorRowFrame
+          icon={null}
+          name={title}
+          logo={<BotAppBrandLogo app={{ id: 'dingtalk' }} />}
+          description={connectorDescription('dingtalk')}
+          status={
+            entry.needsOwner
+              ? {
+                  label: t('bots.dingtalk.attention', 'Needs attention'),
+                  tone: 'attention',
+                  listOnly: true
+                }
+              : null
+          }
+        >
+          <BotDingTalkSettings bot={bot} status={entry.status} />
+        </BotConnectorRowFrame>
+      )
     case 'composio':
       return (
         <BotComposioAppRow

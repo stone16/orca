@@ -27,6 +27,9 @@ const BotSlackSetupDialog = lazy(() =>
     default: module.BotSlackSetupDialog
   }))
 )
+const BotDingTalkSetup = lazy(() =>
+  import('./dingtalk/BotDingTalkSetup').then((module) => ({ default: module.BotDingTalkSetup }))
+)
 const GoogleAccountsDialog = lazy(() =>
   import('./google/GoogleAccountsChoice').then((module) => ({
     default: module.GoogleAccountsDialog
@@ -105,6 +108,12 @@ export function useConnectorSetup(bot: Bot): {
           bot={bot}
           open
           onOpenChange={(next) => setSetupOpen(next ? 'linear' : null)}
+        />
+      ) : null}
+      {setupOpen === 'dingtalk' ? (
+        <BotDingTalkSetup
+          bot={bot}
+          onOpenChange={(next) => setSetupOpen(next ? 'dingtalk' : null)}
         />
       ) : null}
       {setupOpen === 'google-accounts' ? (

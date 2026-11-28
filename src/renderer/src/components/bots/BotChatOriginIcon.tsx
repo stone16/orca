@@ -11,12 +11,14 @@ import { LinearIcon } from '../icons/LinearIcon'
 import { usageLimitStopTip } from './BotUsageLimitMark'
 import type { BotUsageLimitStop } from './use-bot-usage-limit-stops'
 import { SlackIcon } from '../icons/SlackIcon'
+import { DingTalkIcon } from '../icons/DingTalkIcon'
 
 const ORIGIN_ICONS = {
   home: House,
   slack: SlackIcon,
   linear: LinearIcon,
   github: GitHubIcon,
+  dingtalk: DingTalkIcon,
   automation: CalendarClock,
   side: MessageSquare
 } as const
@@ -32,6 +34,8 @@ function useChatKindLabel(origin: BotChatOrigin): string {
       return t('bots.chats.kindLinear', 'Linear issue')
     case 'github':
       return t('bots.chats.kindGithub', 'GitHub thread')
+    case 'dingtalk':
+      return t('bots.chats.kindDingTalk', 'DingTalk direct chat')
     case 'automation':
       return t('bots.chats.kindAutomation', 'Automation run')
     case 'side':

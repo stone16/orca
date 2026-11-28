@@ -11,14 +11,16 @@ import { useBotGitHub } from '@/lib/bot-github-state'
 import { useBotLinear } from '@/lib/bot-linear-state'
 import { botLinearWorkspaces, botSlackApps, type Bot } from '../../../../shared/bot-types'
 import { DiscordIcon } from '../icons/DiscordIcon'
+import { DingTalkIcon } from '../icons/DingTalkIcon'
 import { GitHubIcon } from '../icons/GitHubIcon'
 import { GoogleIcon } from '../icons/GoogleIcon'
 import { LinearIcon } from '../icons/LinearIcon'
 import { SlackIcon } from '../icons/SlackIcon'
 import { useWebhooksConnector } from './webhooks/use-webhooks-connector'
+import { useDingTalkStatus } from './dingtalk/use-dingtalk-status'
 
 export type BotConnector = {
-  id: 'slack' | 'discord' | 'google' | 'linear' | 'github' | 'webhooks'
+  id: 'slack' | 'discord' | 'dingtalk' | 'google' | 'linear' | 'github' | 'webhooks'
   label: string
   Icon: ComponentType<{ className?: string }>
   /** False shows the connector as "Coming soon"; see useBotConnectorAvailable for Linear and GitHub. */
@@ -30,6 +32,15 @@ export type BotConnector = {
 /** Where people can reach a bot, in the order every connector list shows them. */
 export const BOT_CONNECTORS: readonly BotConnector[] = [
   { id: 'slack', label: 'Slack', Icon: SlackIcon, available: true, add: 'link' },
+  {
+    id: 'dingtalk',
+    get label() {
+      return translate('bots.dingtalk.title', 'DingTalk')
+    },
+    Icon: DingTalkIcon,
+    available: true,
+    add: 'link'
+  },
   { id: 'discord', label: 'Discord', Icon: DiscordIcon, available: false, add: 'link' },
   { id: 'google', label: 'Google', Icon: GoogleIcon, available: true, add: 'link' },
   { id: 'linear', label: 'Linear', Icon: LinearIcon, available: true, add: 'link' },
@@ -46,7 +57,9 @@ export const BOT_CONNECTORS: readonly BotConnector[] = [
 ]
 
 /** The connectors that link an account, for lists of linked accounts across bots. */
-export const ACCOUNT_CONNECTORS = BOT_CONNECTORS.filter((connector) => connector.add === 'link')
+export const ACCOUNT_CONNECTORS = BOT_CONNECTORS.filter(
+  (connector) => connector.add === 'link' && connector.id !== 'dingtalk'
+)
 
 /** Whether an account connector can be added now on the host: Linear and GitHub also wait for its cloud. */
 export function useBotConnectorAvailable(
@@ -83,16 +96,27 @@ export function useBotConnectorState(bot: Bot): {
 } {
   const accountAvailable = useBotConnectorAvailable(bot.hostId)
   const webhooks = useWebhooksConnector(bot)
+  const dingTalk = useDingTalkStatus(bot)
+  const dingTalkAdded =
+    dingTalk?.link === 'paired' || dingTalk?.link === 'unpaired' || dingTalk?.link === 'unavailable'
   // Slack, Linear and GitHub set up on the bot's host; an older one can't from here.
   const setUpHere = useBotHostHas(bot.hostId, BOTS_CONNECTORS_RUNTIME_CAPABILITY)
   return {
     catalog: BOT_CONNECTORS.filter((connector) => connector.id !== 'webhooks' || webhooks !== null),
-    available: (connector) =>
-      connector.id === 'webhooks'
+    available: (connector) => {
+      if (connector.id === 'dingtalk') {
+        return dingTalk !== null && dingTalk.link !== 'another-bot'
+      }
+      return connector.id === 'webhooks'
         ? webhooks !== null
-        : accountAvailable(connector) && (setUpHere || connector.id === 'google'),
-    added: (connector) =>
-      connector.id === 'webhooks' ? webhooks === 'added' : connectorAdded(bot, connector.id)
+        : accountAvailable(connector) && (setUpHere || connector.id === 'google')
+    },
+    added: (connector) => {
+      if (connector.id === 'dingtalk') {
+        return dingTalkAdded
+      }
+      return connector.id === 'webhooks' ? webhooks === 'added' : connectorAdded(bot, connector.id)
+    }
   }
 }
 
