@@ -63,8 +63,8 @@ export function ChatBadgedIcon({ chat }: { chat: LeadingChat }) {
 const SOURCE_SIZE = 14
 const LUCIDE_SIZE = 15
 
-function isSource(origin: BotChatTreeChat['origin']): origin is SuggestionSource {
-  return origin === 'slack' || origin === 'linear' || origin === 'github'
+function isSource(origin: BotChatTreeChat['origin']): origin is SuggestionSource | 'dingtalk' {
+  return origin === 'slack' || origin === 'linear' || origin === 'github' || origin === 'dingtalk'
 }
 // The badge sits 2 pt past the icon's corner, with a 1 pt gap cut around it.
 const WORKING_BADGE_SIZE = 7
@@ -111,6 +111,7 @@ function ChatIcon({ chat, badgeSize }: { chat: LeadingChat; badgeSize?: number }
     case 'slack':
     case 'linear':
     case 'github':
+    case 'dingtalk':
       return (
         <MobileConnectorSourceIcon source={chat.origin} mask={mask}>
           {defs}

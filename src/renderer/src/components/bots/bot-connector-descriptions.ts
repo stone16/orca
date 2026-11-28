@@ -19,6 +19,11 @@ export function connectorDescription(id: BotConnectorId): string {
         'bots.connectors.slack',
         'Chat with the bot from Slack channels and direct messages.'
       )
+    case 'dingtalk':
+      return translate(
+        'bots.dingtalk.description',
+        'Pair your DingTalk account to chat with this bot in a direct message.'
+      )
     case 'discord':
       return translate(
         'bots.connectors.discord',
